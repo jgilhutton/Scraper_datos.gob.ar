@@ -1,4 +1,4 @@
-# Scrapper de datasets de la página https://datos.gob.ar/
+# Scraper de datasets de la página https://datos.gob.ar/
 
 El script se encarga de descargar las bases de datos que encuentre, en base a un criterio de búsqueda o grupo seleccionado.
 
