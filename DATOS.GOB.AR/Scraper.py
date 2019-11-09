@@ -182,7 +182,12 @@ def main():
                                                         round(sizeCsv, 2)))
                     continue
                 print(fileName.ljust(100, '.'), round(sizeCsv, 2), unidad)
-                data = getPage(csvLink)
+                try:
+                    data = getPage(csvLink)
+                except KeyboardInterrupt:
+                    continue
+                except EOFError:
+                    exit()
                 createCsv(fileName, data)
 
 
