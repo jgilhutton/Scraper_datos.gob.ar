@@ -5,9 +5,8 @@ El script se encarga de descargar las bases de datos que encuentre, en base a un
 # Modo de uso:
 
 ```
-  SEARCH_TERM = ''
   MAX_FILE_SIZE = 1024  # MiB
-  OUTPUT_DIRECTORY = './datasets/' + sub('[^\w\d-]+','.',SEARCH_TERM) + '/'
+  OUTPUT_DIRECTORY = './datasets/' + sub('[^\w\d-]+','__',SEARCH_TERM) + '/'
   GRUPOS = {
       'Agroganadreia, pesca y forestacion':   ('agri',False),
       'Asuntos internacionales':              (None,False),
@@ -24,7 +23,7 @@ El script se encarga de descargar las bases de datos que encuentre, en base a un
       'Transporte':                           ('tran',False),
   }
 ```
-- SEARCH_TERM: Si contiene algo, buscará todos los datasets que el sitio datos.gob.ar crea que corresponden a los términos. Es posible que si uno busca, por ejemplo "SUBE", descargue cualquier cantidad de huevadas que no tienen nada que ver, solo porque tenían la palabra "sube" en algún lado de la metadata.
+- Opción "-s" de consola: Haciendo `python Scraper.py -s "temperatura"` hará una búsqueda de la palabra "temperatura" y descargará todas las db relevantes. Si no se le pasan argumentos, descargará los grupos.
 - MAX_FILE_SIZE: Maximo tamaño, en megabytes, que deben tener los archivos .csv a descargar. Cualquier archivo que sobrepase esa cantidad de información será salteado y el programa avisará en pantalla.
 - OUTPUT_DIRECTORY: Carpeta donde va a ir a parar la información. El programa salteará las bases de datos ya descargadas.
 - GRUPOS: Estos son los grupos que ofrece el sitio datos.gob.ar. Si estan todos en False, la busqueda se efectuará para todos los grupos, caso contrario, el programa buscará solamente en los grupos que sean seteados como True.
