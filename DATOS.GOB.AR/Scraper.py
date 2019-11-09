@@ -170,7 +170,7 @@ def main():
                 if not csvLink:
                     continue
                 sizeCsv, unidad, aceptable, fileName = checkFile(csvLink)
-                if isfile(OUTPUT_DIRECTORY + fileName + '.csv'):
+                if isfile(OUTPUT_DIRECTORY + fileName):
                     print('Se saltea {}.'.format(fileName).ljust(100, '.'), 'Ya existe el archivo')
                     continue
                 if not sizeCsv:
