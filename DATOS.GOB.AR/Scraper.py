@@ -3,11 +3,19 @@ from re import compile, sub, search
 from os.path import isfile, isdir
 from os import mkdir
 from ssl import SSLError, SSLCertVerificationError
+from sys import argv
 import requests
 
-SEARCH_TERM = 'precio'
+if '-s' in argv:
+    try:
+        SEARCH_TERM = argv[argv.index('-s')+1]
+    except:
+        print('Daaaaale boludo... qué te venís a hacer el Q&A aquí. Gil')
+        exit()
+else:
+    SEARCH_TERM = ''
 MAX_FILE_SIZE = 10  # MiB
-OUTPUT_DIRECTORY = './datasets/' + sub('[^\w\d-]+','.',SEARCH_TERM) + '/'
+OUTPUT_DIRECTORY = './datasets/' + sub('[^\w\d-]+','_',SEARCH_TERM) + '/'
 GRUPOS = {
     'Agroganadreia, pesca y forestacion':   ('agri',False),
     'Asuntos internacionales':              (None,False),
@@ -27,12 +35,23 @@ GRUPOS = {
 datasetLandingPage = 'https://datos.gob.ar/'
 
 
-def getPage(url):
+def getPage(url, method='GET'):
     try:
-        page = requests.get(url, allow_redirects=True)
+        if method == 'GET':
+            page = requests.get(url, allow_redirects=True)
+        elif method == 'HEAD':
+            page = requests.head(url,allow_redirects=True)
+    except SSLError:
+        salir("""Existen problemas con la configuracion SSL de la maquina.
+        Editar el archivo /etc/ssl y bajarle el nivel de seguridad
+            tal como se detalla en el siguiente link:
+            https://stackoverflow.com/questions/55680224/how-to-fix-requests-exceptions-sslerror""")
     except (SSLCertVerificationError, requests.exceptions.SSLError):
-        page = requests.get(url, allow_redirects=True, verify=False)
-    return page.text
+        if method == 'GET':
+            page = requests.get(url, allow_redirects=True, verify=False)
+        elif method == 'HEAD':
+            page = requests.head(url, allow_redirects=True, verify=False)
+    return page.text if method == 'GET' else page
 
 
 def salir(mensaje=''):
@@ -71,66 +90,57 @@ def getLinksParaDatasets(soup):
 
 
 def getDataCsv(soup):
-    divs = filter(lambda x: (x.has_attr('class') and x['class'] == ['pkg-container']), soup.find_all('div'))
+    divs = soup.find_all('div',{'class':'pkg-container'})
     for div in divs:
-        csvs = div.find_all(href=compile('.+\.(?:csv$|php)'))
-        nombres = div.find_all('h3')
+        csvs = [y for y in [x['href'] for x in div.find_all('a')] if y.startswith('http')]
         if len(csvs) == 1:
-            csv = [x['href'] for x in csvs][0]
+            csv = csvs[0]
             if not search('^https?://',csv):
                 csv = 'https://' + csv
         else:
-            yield None, None
+            yield None
             continue
-        if len(nombres) == 1:
-            nombre = [x.text for x in nombres][0]
-            regex = '[^\w\d-]+'
-            nombre = sub(regex, '_', nombre)
-        else:
-            yield None, None
-        yield (nombre, csv)
+        yield csv
 
 
 def createCsv(fileName, data):
-    with open(OUTPUT_DIRECTORY+fileName + '.csv', 'w') as csv:
+    with open(OUTPUT_DIRECTORY+fileName, 'w') as csv:
         csv.write(data)
 
 
-def checkFileSize(link):
+def checkFile(link):
+    head = getPage(link,method='HEAD')
     try:
-        head = requests.head(link, allow_redirects=True)
-    except SSLError:
-        salir("""Existen problemas con la configuracion SSL de la maquina.
-Editar el archivo /etc/ssl y bajarle el nivel de seguridad
-    tal como se detalla en el siguiente link:
-    https://stackoverflow.com/questions/55680224/how-to-fix-requests-exceptions-sslerror""")
-    except (SSLCertVerificationError,requests.exceptions.SSLError):
-        head = requests.head(link, allow_redirects=True, verify=False)
+        fileName = search('(?<=/)[^/]+?\.\w{3}$', link).group()
+    except:
+        fileName = search('(?<=filename=).+', head.headers['Content-disposition']).group()
     try:
         size = head.headers['Content-Range'].split('/')[-1]
     except KeyError:
-        if not link.endswith('csv') and 'php' in link:
-            return -1, 'Desconocido', True
-        else:
-            return None,None,False
+        return -1, 'Desconocido', True, fileName
     if size.isnumeric():
         size = int(size)
     sizeInKiB = size / 1024
     sizeInMiB = sizeInKiB / 1024
     if sizeInMiB < 1:
         if sizeInKiB > MAX_FILE_SIZE * 1024:
-            return sizeInKiB, 'KiB', False
+            return sizeInKiB, 'KiB', False, fileName
         else:
-            return sizeInKiB, 'KiB', True
+            return sizeInKiB, 'KiB', True, fileName
     elif sizeInMiB > MAX_FILE_SIZE:
-        return sizeInMiB, 'MiB', False
+        return sizeInMiB, 'MiB', False, fileName
     else:
-        return sizeInMiB, 'MiB', True
+        return sizeInMiB, 'MiB', True, fileName
 
 
 def createDirectory():
     if not isdir(OUTPUT_DIRECTORY):
-        mkdir(OUTPUT_DIRECTORY)
+        try:
+            mkdir('./datasets')
+        except:
+            pass
+        finally:
+            mkdir(OUTPUT_DIRECTORY)
 
 
 def main():
@@ -156,13 +166,13 @@ def main():
         for dataSetLink in getLinksParaDatasets(soup):
             datasetPage = getPage(dataSetLink)
             dsSoup = bs(datasetPage, 'html.parser')
-            for fileName, csvLink in getDataCsv(dsSoup):
-                if not fileName:
+            for csvLink in getDataCsv(dsSoup):
+                if not csvLink:
                     continue
+                sizeCsv, unidad, aceptable, fileName = checkFile(csvLink)
                 if isfile(OUTPUT_DIRECTORY + fileName + '.csv'):
                     print('Se saltea {}.'.format(fileName).ljust(100, '.'), 'Ya existe el archivo')
                     continue
-                sizeCsv, unidad, aceptable = checkFileSize(csvLink)
                 if not sizeCsv:
                     print('Se saltea {}.'.format(fileName).ljust(100, '.'), 'Problemas con headers')
                     continue
@@ -172,10 +182,7 @@ def main():
                                                         round(sizeCsv, 2)))
                     continue
                 print(fileName.ljust(100, '.'), round(sizeCsv, 2), unidad)
-                try:
-                    data = requests.get(csvLink, allow_redirects=True).text
-                except (SSLCertVerificationError, requests.exceptions.SSLError):
-                    data = requests.get(csvLink, allow_redirects=True, verify=False).text
+                data = getPage(csvLink)
                 createCsv(fileName, data)
 
 
