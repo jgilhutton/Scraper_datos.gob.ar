@@ -4,10 +4,10 @@
 
 Colector de bases de datos de caracter público del sitio DATOS.GOB.AR perteneciente al Gobierno de Argentina.
 
-CSV disponibles? -> NO
+DBs disponibles? -> NO
 
 - INPRES
 
 Base de datos sismológica del instituto nacional de prevención sísmica de Argentina
 
-CSV disponibles? -> SÍ
+DBs disponibles? -> SÍ

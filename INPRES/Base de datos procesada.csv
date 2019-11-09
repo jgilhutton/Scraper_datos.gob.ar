@@ -1,4 +1,4 @@
-,fecha,latitud,longitud,profundidad,richter,ubicacion
+id,fecha,latitud,longitud,profundidad,richter,ubicacion
 0,1999-09-10 00:28:32,-26.82,-65.88,20,3.0,Tucumán
 1,1999-10-15 09:12:49,-33.25,-66.25,60,4.0,San luis
 2,1999-11-14 06:50:59,-28.87,-66.5,57,3.9,La rioja
