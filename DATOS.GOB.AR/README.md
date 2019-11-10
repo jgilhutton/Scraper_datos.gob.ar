@@ -6,7 +6,7 @@ El script se encarga de descargar las bases de datos que encuentre, en base a un
 
 ```
   MAX_FILE_SIZE = 1024  # MiB
-  OUTPUT_DIRECTORY = './datasets/' + sub('[^\w\d-]+','__',SEARCH_TERM) + '/'
+  OUTPUT_DIRECTORY = './datasets/'
   GRUPOS = {
       'Agroganadreia, pesca y forestacion':   ('agri',False),
       'Asuntos internacionales':              (None,False),
@@ -24,9 +24,11 @@ El script se encarga de descargar las bases de datos que encuentre, en base a un
   }
 ```
 - Opción "-s" de consola: Haciendo `python Scraper.py -s "temperatura"` hará una búsqueda de la palabra "temperatura" y descargará todas las db relevantes. Si no se le pasan argumentos, descargará los grupos.
+- Opción "-b" de consola: Haciendo `python Scraper.py -b -s "temperatura"` solo mostrará los archivos sin descargarlos.
+- Opción "-g de consola: Haciendo `python Scraper.py -s "enfermedad" -g "heal"` buscará el término "enfermedad" en los datasets que pertenezcan al grupo de salud.
 - MAX_FILE_SIZE: Maximo tamaño, en megabytes, que deben tener los archivos .csv a descargar. Cualquier archivo que sobrepase esa cantidad de información será salteado y el programa avisará en pantalla.
 - OUTPUT_DIRECTORY: Carpeta donde va a ir a parar la información. El programa salteará las bases de datos ya descargadas.
-- GRUPOS: Estos son los grupos que ofrece el sitio datos.gob.ar. Si estan todos en False, la busqueda se efectuará para todos los grupos, caso contrario, el programa buscará solamente en los grupos que sean seteados como True.
+- GRUPOS: Estos son los grupos que ofrece el sitio datos.gob.ar. Si estan todos en False y no se proporcionó ningún término de búsqueda o grupo, la busqueda se efectuará para todos los grupos, caso contrario, el programa buscará solamente en los grupos que sean seteados como True.
 
 # Requerimientos:
 
