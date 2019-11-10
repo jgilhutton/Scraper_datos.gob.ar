@@ -6,16 +6,8 @@ from ssl import SSLError, SSLCertVerificationError
 from sys import argv
 import requests
 
-if '-s' in argv:
-    try:
-        SEARCH_TERM = argv[argv.index('-s')+1]
-    except:
-        print('Daaaaale boludo... qué te venís a hacer el Q&A aquí. Gil')
-        exit()
-else:
-    SEARCH_TERM = ''
 MAX_FILE_SIZE = 10  # MiB
-OUTPUT_DIRECTORY = './datasets/' + sub('[^\w\d-]+','_',SEARCH_TERM) + '/'
+OUTPUT_DIRECTORY = './datasets/'
 GRUPOS = {
     'Agroganadreia, pesca y forestacion':   ('agri',False),
     'Asuntos internacionales':              (None,False),
@@ -34,6 +26,29 @@ GRUPOS = {
 
 datasetLandingPage = 'https://datos.gob.ar/'
 
+def kindOfAnArgParserButBadImplemented():
+    global SEARCH_TERM, SOLO_BUSCAR, GRUPO, OUTPUT_DIRECTORY
+    if '-s' in argv:
+        try:
+            SEARCH_TERM = argv[argv.index('-s') + 1]
+        except:
+            print('Daaaaale boludo... qué te venís a hacer el Q&A aquí. Gil')
+            exit()
+    else:
+        SEARCH_TERM = ''
+    if '-g' in argv:
+        try:
+            GRUPO = argv[argv.index('-g') + 1]
+        except:
+            print('Daaaaale boludo... qué te venís a hacer el Q&A aquí. Gil')
+            exit()
+    else:
+        GRUPO = ''
+    if '-b' in argv:
+        SOLO_BUSCAR = True
+    else:
+        SOLO_BUSCAR = False
+    OUTPUT_DIRECTORY += sub('[^\w\d-]+', '_', SEARCH_TERM) + '/'
 
 def getPage(url, method='GET'):
     try:
@@ -61,18 +76,15 @@ def salir(mensaje=''):
 
 
 def getSearchStr():
+    searchStr = []
     if SEARCH_TERM:
-        searchStr = 'q={}&sort=metadata_modified+desc'.format(SEARCH_TERM)
-        return searchStr
-    buscarEstosGrupos = []
-    searchStr = ''
+        searchStr.append('q={}&sort=metadata_modified+desc'.format(SEARCH_TERM))
+    buscarEstosGrupos = GRUPO.replace(' ','').split(',')
     for grupo in GRUPOS:
         if all(GRUPOS[grupo]):
             buscarEstosGrupos.append(GRUPOS[grupo][0])
-    if not buscarEstosGrupos:
-        return ''
-    searchStr = 'groups='+'&groups='.join(buscarEstosGrupos)
-    return searchStr
+    searchStr.append('groups='+'&groups='.join(buscarEstosGrupos))
+    return '&'.join(searchStr)
 
 def getNumeroDePaginas(soup):
     linkToPaginas = soup.find_all(href=compile('(?<=/dataset\?page=)\d+'))
@@ -113,7 +125,10 @@ def checkFile(link):
     try:
         fileName = search('(?<=/)[^/]+?\.\w{3}$', link).group()
     except:
-        fileName = search('(?<=filename=).+', head.headers['Content-disposition']).group()
+        if head.headers.__contains__('Content-disposition'):
+            fileName = search('(?<=filename=).+', head.headers['Content-disposition']).group()
+        else:
+            return -1, 'Desconocido', False, None
     try:
         size = head.headers['Content-Range'].split('/')[-1]
     except KeyError:
@@ -144,6 +159,7 @@ def createDirectory():
 
 
 def main():
+    kindOfAnArgParserButBadImplemented()
     createDirectory()
     searchStr = getSearchStr()
     url = datasetLandingPage + 'dataset?' + searchStr
@@ -170,6 +186,10 @@ def main():
                 if not csvLink:
                     continue
                 sizeCsv, unidad, aceptable, fileName = checkFile(csvLink)
+                if not fileName: continue
+                if SOLO_BUSCAR:
+                    print(fileName)
+                    continue
                 if isfile(OUTPUT_DIRECTORY + fileName):
                     print('Se saltea {}.'.format(fileName).ljust(100, '.'), 'Ya existe el archivo')
                     continue
